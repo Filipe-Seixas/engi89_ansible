@@ -1,1 +1,5 @@
 .vagrant/
+ansible_dgram.drawio
+ansible_notes.txt
+mongo_playbook.png
+provision.PNG
