@@ -22,9 +22,8 @@ Vagrant.configure("2") do |config|
     web.vm.network :private_network, ip: "192.168.33.10"
     #   assigning private IP
     
-    config.hostsupdater.aliases = ["development.web"]
-    # creating a link called development.web so we can access web page with this link instread of an IP   
-        
+    web.vm.synced_folder "C:/Users/pabfi/Desktop/Work/Sparta/GitHub Repos/engi89_jenkins/app", "/home/vagrant/app"
+
   end
   
 # creating second VM called db
@@ -35,8 +34,7 @@ Vagrant.configure("2") do |config|
     db.vm.hostname = 'db'
     
     db.vm.network :private_network, ip: "192.168.33.11"
-    
-    config.hostsupdater.aliases = ["development.db"]     
+       
   end
 
  # creating are Ansible controller
@@ -47,8 +45,10 @@ Vagrant.configure("2") do |config|
     controller.vm.hostname = 'controller'
     
     controller.vm.network :private_network, ip: "192.168.33.12"
-    
-    config.hostsupdater.aliases = ["development.controller"] 
+
+    controller.vm.synced_folder "C:/Users/pabfi/Desktop/Work/Sparta/GitHub Repos/eng89_ansible/eng89_ansible_controller/playbooks", "/home/vagrant/playbooks"
+
+    controller.vm.provision "shell", path: "C:/Users/pabfi/Desktop/Work/Sparta/GitHub Repos/eng89_ansible/eng89_ansible_controller/controller_provision.sh"
     
   end
 
