@@ -83,12 +83,15 @@
         npm install
         pm2 kill
       
-    - name: "seed database"
-      shell: |
-        echo "env var setup"
+    - name: "env variable"
       environment:
-        DB_HOST: mongodb://vagrant@192.168.33.11:27017/posts?authSource=admin
-        become_user: root
+        DB_HOST: mongodb://192.168.33.11:27017/posts?authSource=admin
+      become_user: root
+      shell: "env"
+
+      #echo "export DB_HOST=mongodb://vagrant@192.168.33.11:27017/posts" >> ~/.bashrc
+      # . ~/.bashrc
+      
 
     - name: "starting node.js"
       shell: |
