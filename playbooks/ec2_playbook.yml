@@ -1,1 +1,55 @@
-ec2_playbook.yml
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: true
+  become: true
+  vars:
+    key_name: filipe_aws
+    region: eu-west-1
+    image: ami-046036047eac23dc9
+    id: "eng89 ansible playbook filipe"
+    sec_group: "sg-00b5e47431353d8bb"
+    subnet_id: "subnet-04320aadc8fa3fac1"
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+
+    - name: Facts
+      block:
+
+      - name: Get instance facts
+        ec2_instance_facts:
+          aws_access_key: "{{ec2_access_key}}"
+          aws_secret_key: "{{ec2_secret_key}}"
+          region: "{{ region }}"
+        register: result
+
+    - name: provisioning ec2 instances
+      block:
+
+      - name: upload public key to aws_access_key
+        ec2_key:
+          name: "{{ key_name }}"
+          key_material: "{{ lookup('file', '~/.ssh/{{ key_name }}.pub') }}"
+          region: "{{ region }}"
+          aws_access_key: "{{ec2_access_key}}"
+          aws_secret_key: "{{ec2_secret_key}}"
+
+      - name: provision instance
+        ec2:
+          aws_access_key: "{{ec2_access_key}}"
+          aws_secret_key: "{{ec2_secret_key}}"
+          assign_public_ip: True
+          key_name: "{{ key_name }}"
+          id: "{{ id }}"
+          vpc_subnet_id: "{{ subnet_id }}"
+          group_id: "{{ sec_group }}"
+          image: "{{ image }}"
+          instance_type: t2.micro
+          region: "{{ region }}"
+          wait: True
+          count: 1
+          instance_tags:
+            Name: eng89_filipe_ansible_instance_app
+
+      tags: ['never', 'create_ec2']

@@ -167,4 +167,184 @@ sudo ansible-vault create pass.yml # (password: sparta)
 sudo cat pass.yml
 sudo ansible-playbook create_ec2.yml --ask-vault-pass --tags create_ec2
   # (input password created earlier)
+```
+
+# Ansible Cloud-only Infrastructure Task
+
+1. Create an EC2 instance for the Ansible controller
+  - Make sure the instance is located in the correct vpc
+2. SSH into machine
+  - `ssh -i <keyname> ubuntu@IP`
+3. Install dependencies and Ansible
+4. Get the ssh key (either make one or copy it from host)
+  - `scp -i eng89_filipe_rsa.pem filipe_ansible.pub ubuntu@34.240.17.57:~/.ssh`
+  - `ssh-keygen -t rsa -b 4096 -f ~/.ssh/<keyname>`
+5. Create dir structure
+  ```bash
+  mkdir -p AWS_Ansible/group_vars/all/
+  cd AWS_Ansible
+  touch app_playbook.yml
+  touch db_playbook.yml
   ```
+6. Create the Ansible Vault
+  - `ansible-vault create group_vars/all/pass.yml`
+  - ec2_access_key: <Your_Access_Key>
+  - ec2_secret_key: <Your_Secret_Key>
+  ```bash
+  # press i to insert
+  # save: esc :wq! then enter
+  # to not save: esc q! enter
+  ```
+7. APP Playbook
+```bash
+# APP playbook
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars:
+    key_name: filipe_ansible
+    region: eu-west-1
+    image: ami-046036047eac23dc9
+    id: "eng89_ansible_filipe_app"
+    sec_group: "sg-00b5e47431353d8bb"
+    subnet_id: "subnet-04320aadc8fa3fac1"
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+
+    - name: Facts
+      block:
+
+      - name: Get instances facts
+        ec2_instance_facts:
+          aws_access_key: "{{ec2_access_key}}"
+          aws_secret_key: "{{ec2_secret_key}}"
+          region: "{{ region }}"
+        register: result
+
+      - name: Instances ID
+        debug:
+          msg: "ID: {{ item.instance_id }} - State: {{ item.state.name }} - Public DNS: {{ item.public_dns_name }}"
+        loop: "{{ result.instances }}"
+
+      tags: always
+
+
+    - name: Provisioning EC2 instances
+      block:
+
+      - name: Upload public key to AWS
+        ec2_key:
+          name: "{{ key_name }}"
+          key_material: "{{ lookup('file', '~/.ssh/{{ key_name }}.pub') }}"
+          region: "{{ region }}"
+          aws_access_key: "{{ec2_access_key}}"
+          aws_secret_key: "{{ec2_secret_key}}"
+
+
+      - name: Provision instance(s)
+        ec2:
+          aws_access_key: "{{ec2_access_key}}"
+          aws_secret_key: "{{ec2_secret_key}}"
+          assign_public_ip: true
+          key_name: "{{ key_name }}"
+          id: "{{ id }}"
+          vpc_subnet_id: "{{ subnet_id }}"
+          group_id: "{{ sec_group }}"
+          image: "{{ image }}"
+          instance_type: t2.micro
+          region: "{{ region }}"
+          wait: true
+          count: 1
+          instance_tags:
+            Name: eng89_ansible_filipe_app
+
+      tags: ['never', 'create_ec2']
+```
+8. Add permissions to the pass.yml file
+  ```bash
+  cd /home/vagrant/AWS_Ansible/group_vars/all
+  sudo chmod 666 pass.yml
+  ```
+9. Create App instance from playbook
+  - `cd ~/AWS_Ansible`
+  - `ansible-playbook app_playbook.yml --ask-vault-pass --tags create_ec2`
+10. Try to ssh into it
+  - `sudo chmod 400 keyname`
+  - `sudo ssh -i keyname ubuntu@ip`
+11. DB Playbook
+  - Make sure DB does NOT have a public IP
+```bash
+# DB playbook
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars:
+    key_name: filipe_ansible
+    region: eu-west-1
+    image: ami-0a2a0deac91474c88
+    id: "eng89_ansible_filipe_db"
+    sec_group: "sg-0675523a737b18ade"
+    subnet_id: "subnet-004481262b7ecd932"
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+
+    - name: Facts
+      block:
+
+      - name: Get instances facts
+        ec2_instance_facts:
+          aws_access_key: "{{ec2_access_key}}"
+          aws_secret_key: "{{ec2_secret_key}}"
+          region: "{{ region }}"
+        register: result
+
+      - name: Instances ID
+        debug:
+          msg: "ID: {{ item.instance_id }} - State: {{ item.state.name }} - Public DNS: {{ item.public_dns_name }}"
+        loop: "{{ result.instances }}"
+
+      tags: always
+
+
+    - name: Provisioning EC2 instances
+      block:
+
+      - name: Upload public key to AWS
+        ec2_key:
+          name: "{{ key_name }}"
+          key_material: "{{ lookup('file', '~/.ssh/{{ key_name }}.pub') }}"
+          region: "{{ region }}"
+          aws_access_key: "{{ec2_access_key}}"
+          aws_secret_key: "{{ec2_secret_key}}"
+
+
+      - name: Provision instance(s)
+        ec2:
+          aws_access_key: "{{ec2_access_key}}"
+          aws_secret_key: "{{ec2_secret_key}}"
+          assign_public_ip: false
+          key_name: "{{ key_name }}"
+          id: "{{ id }}"
+          vpc_subnet_id: "{{ subnet_id }}"
+          group_id: "{{ sec_group }}"
+          image: "{{ image }}"
+          instance_type: t2.micro
+          region: "{{ region }}"
+          wait: true
+          count: 1
+          instance_tags:
+            Name: eng89_ansible_filipe_db
+
+      tags: ['never', 'create_ec2']
+```
+12. Create DB instance from playbook
+  - `cd ~/AWS_Ansible`
+  - `ansible-playbook db_playbook.yml --ask-vault-pass --tags create_ec2`

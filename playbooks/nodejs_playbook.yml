@@ -1,20 +1,15 @@
 ---
 # name of the hosts - hosts is to define the name of your host of all
 - hosts: web
-
 # find the facts about the host
   gather_facts: yes
-
 # admin access
   become: true
-
 # instructions using task module in ansible
   tasks:
   - name: Install Nginx
-
 # install nginx
     apt: pkg=nginx state=present update_cache=yes
-
 -
   name: "installing nodejs"
   hosts: web
@@ -88,11 +83,7 @@
         DB_HOST: mongodb://192.168.33.11:27017/posts?authSource=admin
       become_user: root
       shell: "env"
-
-      #echo "export DB_HOST=mongodb://vagrant@192.168.33.11:27017/posts" >> ~/.bashrc
-      # . ~/.bashrc
       
-
     - name: "starting node.js"
       shell: |
         node app/seeds/seed.js

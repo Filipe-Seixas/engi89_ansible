@@ -15,7 +15,7 @@
       path: /etc/mongodb.conf
       state: absent
 
-  - name: Touch a file, using symbolic modes to set the permissions (equivalent to 0644)
+  - name: Set permissions
     file:
       path: /etc/mongodb.conf
       state: touch
